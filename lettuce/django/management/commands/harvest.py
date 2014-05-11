@@ -23,7 +23,7 @@ from django.core.management.base import BaseCommand
 from django.test.utils import setup_test_environment
 from django.test.utils import teardown_test_environment
 
-from lettuce import Runner
+from lettuce import Runner, ParallelRunner
 from lettuce import registry
 
 from lettuce.django import harvest_lettuces, get_server
@@ -71,6 +71,18 @@ class Command(BaseCommand):
                     'can be used multiple times to define more tags'
                     '(prefixing tags with "-" will exclude them and '
                     'prefixing with "~" will match approximate words)'),
+
+        make_option("-r", "--random",
+                      dest="random",
+                      action="store_true",
+                      default=False,
+                      help="Run scenarios in a more random order to avoid interference"),
+
+        make_option("-p", "--parallel",
+                      dest="parallel",
+                      default=None,
+                      help="Run scenarios in a parallel fashion"),
+
 
         make_option('--with-xunit', action='store_true', dest='enable_xunit', default=False,
             help='Output JUnit XML test results to a file'),
@@ -181,6 +193,39 @@ class Command(BaseCommand):
                                 subunit_filename=options.get('subunit_file'),
                                 tags=tags, failfast=failfast, auto_pdb=auto_pdb,
                                 smtp_queue=smtp_queue)
+
+                if options.get('parallel'):
+                    print "running Parallel Runner with {} workers".format(options.get('parallel'))
+                    runner = ParallelRunner(
+                        path,
+                        scenarios=options.get('scenarios'),
+                        verbosity=options.get('scenarios'),
+                        random=options.get('random'),
+                        enable_xunit=options.get('enable_xunit'),
+                        xunit_filename=options.get('xunit_file'),
+                        enable_subunit=options.get('enable_subunit'),
+                        subunit_filename=options.get('subunit_file'),
+                        failfast=failfast,
+                        auto_pdb=auto_pdb,
+                        tags=tags,
+                        workers=int(options.get('parallel')),
+                        smtp_queue=smtp_queue
+                    )
+                else:
+                    runner = Runner(
+                        path,
+                        scenarios=options.get('scenarios'),
+                        verbosity=options.get('scenarios'),
+                        random=options.get('random'),
+                        enable_xunit=options.get('enable_xunit'),
+                        xunit_filename=options.get('xunit_file'),
+                        enable_subunit=options.get('enable_subunit'),
+                        subunit_filename=options.get('subunit_file'),
+                        failfast=failfast,
+                        auto_pdb=auto_pdb,
+                        tags=tags,
+                        smtp_queue=smtp_queue
+                    )
 
                 result = runner.run()
                 if app_module is not None:
